@@ -12,6 +12,7 @@ use Socket;
 use Threaded;
 use Throwable;
 use ZeqaNetwork\ZeberClient\packet\LoginBuilder;
+use ZeqaNetwork\ZeberClient\packet\PacketId;
 use function gc_enable;
 use function igbinary_serialize;
 use function igbinary_unserialize;
@@ -180,20 +181,6 @@ class ZeberSocketThread extends Thread{
         $buf = $this->pendingBuffer;
         $len = strlen($buf);
         $offset = 0;
-        if(!$this->authenticated) {
-            $f = substr($buf, 0, 1);
-            if($f === "\x01") {
-                $this->authenticated = true;
-                $offset++;
-                $this->logger->notice("Connected and authenticated to ZeberServer! {$this->host}/{$this->port}");
-            } elseif (strlen($f) === 1) {
-                if($f === "\x00") {
-                    throw new ZeberException("Failed to connect: The server named " . $this->serverName . " already exists on Zeber Server");
-                }
-                $f = ord($f);
-                throw new ZeberException("Unauthorized connection (f={$f})");
-            }
-        }
         if($this->authenticated){
             while($offset < $len){
                 $l = Binary::readInt(substr($buf, $offset, 4));
@@ -210,7 +197,7 @@ class ZeberSocketThread extends Thread{
                 if($dec === false) {
                     throw new ZeberException("JSON encode error: " . json_last_error_msg());
                 }
-                $this->sendPacketToMainThread(igbinary_serialize($dec));
+                $this->handlePacket($dec);
             }
         }
         $this->pendingBuffer = substr($buf, $offset);
@@ -293,5 +280,19 @@ class ZeberSocketThread extends Thread{
 
     public function getThreadName(): string{
         return "ZeberSocketThread";
+    }
+
+    private function handlePacket(array $dec){
+        if(!$this->authenticated) {
+            if($dec["id"] === PacketId::AUTH) {
+                if($dec["data"]){
+                    $this->authenticated = true;
+                }else{
+                    throw new ZeberException("Authentication failed");
+                }
+            }
+            return;
+        }
+        $this->sendPacketToMainThread(igbinary_serialize($dec));
     }
 }

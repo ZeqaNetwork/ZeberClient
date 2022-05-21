@@ -14,4 +14,6 @@ class PacketId{
     const REQUEST = "request";
     // Response from request packet
     const RESPONSE = "response";
+    // Auth status
+    const AUTH = "auth";
 }
