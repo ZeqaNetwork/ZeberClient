@@ -52,7 +52,6 @@ class ZeberSocketThread extends Thread{
     private bool $stop = false;
     private bool $mustReconnect = false;
     private bool $authenticated = false;
-    private bool $initialConnected = false;
 
     public function __construct(private AttachableThreadedLogger $logger, private string $host, private int $port, private Threaded $packetToWrite, private Threaded $packetToRead, private $ipcSocket, private SleeperNotifier $notifier, private string $serverName) {
     }
@@ -241,11 +240,6 @@ class ZeberSocketThread extends Thread{
             $this->connected = true;
 
             $this->write($this->getLoginPacket());
-            if($this->initialConnected) {
-                $this->sendPacketToMainThread(Binary::writeByte(255));
-            }
-
-            $this->initialConnected = true;
             return true;
         } catch(Throwable $e) {
             $this->logger->logException($e);
