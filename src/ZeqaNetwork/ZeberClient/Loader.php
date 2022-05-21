@@ -14,7 +14,7 @@ class Loader extends PluginBase{
      * @throws ZeberException
      */
     public function onEnable(): void{
-        $this->zeber = new ZeberClient("test", "127.0.0.1", 5770); // testing
+        $this->zeber = new ZeberClient($this, "test", "127.0.0.1", 5770); // testing
     }
 
     public function onDisable(): void{

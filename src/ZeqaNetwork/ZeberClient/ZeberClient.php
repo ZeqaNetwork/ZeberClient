@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace ZeqaNetwork\ZeberClient;
 
+use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use Socket;
+use ZeqaNetwork\ZeberClient\packet\PacketId;
+use ZeqaNetwork\ZeberClient\packet\RequestBuilder;
 use function igbinary_serialize;
 use function igbinary_unserialize;
 
@@ -16,8 +20,12 @@ class ZeberClient{
     private Socket $ipcMainSocket;
     private Socket $ipcThreadSocket;
     private ZeberPacketHandler $handler;
+    private int $nextReqId = 0;
+    /** @var callable[] */
+    private array $requestCallbacks = [];
 
     public function __construct(
+        private PluginBase $plugin,
         private string $serverName,
         private string $ip,
         private int $port
@@ -78,7 +86,22 @@ class ZeberClient{
     }
 
     private function handlePacket(array $packet) {
-        $this->handler->handle($packet["id"], $packet["data"]);
+        $id = $packet["id"];
+        $data = $packet["data"];
+        switch($id) {
+            case PacketId::RESPONSE:
+                $resId = (int) $data["id"];
+                $payload = $data["payload"];
+                if(isset($this->requestCallbacks[$resId])) {
+                    try{
+                        ($this->requestCallbacks[$resId])($payload);
+                    }finally{
+                        unset($this->requestCallbacks[$resId]);
+                    }
+                }
+                break;
+        }
+        $this->handler->handle($id, $data);
     }
 
     public function sendPacket(array $packet) {
@@ -114,5 +137,17 @@ class ZeberClient{
 
     public function getPort(): int{
         return $this->port;
+    }
+
+    public function sendRequest(string $action, array $payload, callable $callback) {
+        $id = $this->nextReqId++;
+        $this->sendPacket(RequestBuilder::create($id, ["action" => $action] + $payload));
+        $this->requestCallbacks[$id] = $callback;
+        $this->plugin->getScheduler()->scheduleDelayedTask(new ClosureTask(function() use ($id, $action) : void{
+            if(isset($this->requestCallbacks[$id])){
+                Server::getInstance()->getLogger()->error("Request timeout ID: $id, action: " . $action);
+                unset($this->requestCallbacks[$id]); // timeout
+            }
+        }), 20 * 15);
     }
 }
