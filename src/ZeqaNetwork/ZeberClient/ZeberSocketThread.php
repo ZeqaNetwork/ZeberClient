@@ -8,6 +8,7 @@ use AttachableThreadedLogger;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\thread\Thread;
 use pocketmine\utils\Binary;
+use pocketmine\utils\TextFormat;
 use Socket;
 use Threaded;
 use Throwable;
@@ -32,6 +33,7 @@ use function socket_strerror;
 use function socket_write;
 use function strlen;
 use function substr;
+use function zlib_decode;
 use function zlib_encode;
 use const AF_INET;
 use const SOCK_STREAM;
@@ -180,24 +182,22 @@ class ZeberSocketThread extends Thread{
         $buf = $this->pendingBuffer;
         $len = strlen($buf);
         $offset = 0;
-        if($this->authenticated){
-            while($offset < $len){
-                $l = Binary::readInt(substr($buf, $offset, 4));
-                $compressed = substr($buf, $offset + 4, $l);
-                if(strlen($compressed) !== $l){
-                    break;
-                }
-                $offset += 4 + $l;
-                $packet = zlib_decode($compressed);
-                if($packet === false){
-                    throw new ZeberException("Packet Decompression Error");
-                }
-                $dec = json_decode($packet);
-                if($dec === false) {
-                    throw new ZeberException("JSON encode error: " . json_last_error_msg());
-                }
-                $this->handlePacket($dec);
+        while($offset < $len){
+            $l = Binary::readInt(substr($buf, $offset, 4));
+            $compressed = substr($buf, $offset + 4, $l);
+            if(strlen($compressed) !== $l){
+                break;
             }
+            $offset += 4 + $l;
+            $packet = zlib_decode($compressed);
+            if($packet === false){
+                throw new ZeberException("Packet Decompression Error");
+            }
+            $dec = json_decode($packet, true);
+            if($dec === false) {
+                throw new ZeberException("JSON encode error: " . json_last_error_msg());
+            }
+            $this->handlePacket($dec);
         }
         $this->pendingBuffer = substr($buf, $offset);
     }
@@ -281,6 +281,7 @@ class ZeberSocketThread extends Thread{
             if($dec["id"] === PacketId::AUTH) {
                 if($dec["data"]){
                     $this->authenticated = true;
+                    $this->logger->info(TextFormat::GREEN . "Authenticated to ZeberServer");
                 }else{
                     throw new ZeberException("Authentication failed");
                 }
