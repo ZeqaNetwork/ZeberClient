@@ -6,10 +6,10 @@ namespace ZeqaNetwork\ZeberClient;
 
 class ZeberPacketHandler{
 
-    public function __construct(
-        protected ZeberClient $client
-    ){
-    }
+	public function __construct(
+		protected ZeberClient $client
+	){
+	}
 
-    public function handle(string $id, mixed $data) {}
+	public function handle(string $id, mixed $data){ }
 }

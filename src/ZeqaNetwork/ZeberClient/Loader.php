@@ -8,16 +8,16 @@ use pocketmine\plugin\PluginBase;
 
 class Loader extends PluginBase{
 
-    private ZeberClient $zeber;
+	private ZeberClient $zeber;
 
-    /**
-     * @throws ZeberException
-     */
-    public function onEnable(): void{
-        $this->zeber = new ZeberClient($this, "test", "127.0.0.1", 5770); // testing
-    }
+	/**
+	 * @throws ZeberException
+	 */
+	public function onEnable() : void{
+		//$this->zeber = new ZeberClient($this, "test", "127.0.0.1", 5770); // testing
+	}
 
-    public function onDisable(): void{
-        $this->zeber->close();
-    }
+	public function onDisable() : void{
+		//$this->zeber->close();
+	}
 }

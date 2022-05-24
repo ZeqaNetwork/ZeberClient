@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ZeqaNetwork\ZeberClient;
 
-class ZeberException extends \Exception{
+use Exception;
+
+class ZeberException extends Exception{
 
 }
