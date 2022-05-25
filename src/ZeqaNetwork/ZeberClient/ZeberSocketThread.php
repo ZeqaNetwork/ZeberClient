@@ -55,7 +55,7 @@ class ZeberSocketThread extends Thread{
 	private bool $mustReconnect = false;
 	private bool $authenticated = false;
 
-	public function __construct(private AttachableThreadedLogger $logger, private string $host, private int $port, private Threaded $packetToWrite, private Threaded $packetToRead, private $ipcSocket, private SleeperNotifier $notifier, private string $serverName){
+	public function __construct(private AttachableThreadedLogger $logger, private string $host, private int $port, private Threaded $packetToWrite, private Threaded $packetToRead, private $ipcSocket, private SleeperNotifier $notifier, private string $serverName, private string $parentServer){
 	}
 
 	public function reconnect(){
@@ -249,7 +249,7 @@ class ZeberSocketThread extends Thread{
 	}
 
 	private function getLoginPacket() : array{
-		return LoginBuilder::create($this->serverName, 0);
+		return LoginBuilder::create($this->serverName, $this->parentServer, 0);
 	}
 
 	private function close(){

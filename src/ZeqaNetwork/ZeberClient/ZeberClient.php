@@ -15,6 +15,14 @@ use ZeqaNetwork\ZeberClient\packet\PacketId;
 use ZeqaNetwork\ZeberClient\packet\RequestBuilder;
 use function igbinary_serialize;
 use function igbinary_unserialize;
+use function socket_close;
+use function socket_create_pair;
+use function socket_last_error;
+use function socket_set_block;
+use function socket_set_nonblock;
+use function socket_strerror;
+use function socket_write;
+use function trim;
 
 class ZeberClient{
 
@@ -29,6 +37,7 @@ class ZeberClient{
 	public function __construct(
 		private PluginBase $plugin,
 		private string $serverName,
+		private string $parentServer,
 		private string $ip,
 		private int $port
 	){
@@ -63,7 +72,8 @@ class ZeberClient{
 			new Threaded(),
 			$this->ipcThreadSocket,
 			$notifier,
-			$this->serverName
+			$this->serverName,
+			$this->parentServer
 		);
 		$this->thread->start(PTHREADS_INHERIT_NONE);
 	}
